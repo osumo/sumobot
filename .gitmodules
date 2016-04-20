@@ -1,0 +1,3 @@
+[submodule "osumo-project"]
+	path = osumo-project
+	url = git://github.com/osumo/osumo-project.git
