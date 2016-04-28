@@ -1,0 +1,78 @@
+---
+
+# expected inventory:
+#
+#                           [group]
+#                      web worker db queue dynamic
+#         WEB          X                   X
+# [host]  WORK             X               X
+#         DB+Q                    X
+#         QUEUE                      X
+
+- include: wait_for_ssh.yml
+- include: gather_facts.yml
+
+- hosts: dynamic
+  user: ubuntu
+  become: true
+  tasks:
+    - name: nginx | configure
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/sumo
+
+    - name: disable default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: enable girder nginx site
+      file:
+        path: /etc/nginx/sites-enabled/sumo
+        src: /etc/nginx/sites-available/sumo
+        state: link
+
+- hosts: dynamic
+  user: ubuntu
+  become: true
+  become_user: girder
+  tasks:
+    - name: resonant | configure
+      template:
+        src: "../templates/{{ item.src }}.j2"
+        dest: "/opt/osumo-project/{{ item.dest }}"
+      with_items:
+        - src: girder.local.cfg
+          dest: girder/girder/conf/girder.local.cfg
+        - src: worker.local.cfg
+          dest: girder_worker/girder_worker/worker.local.cfg
+        - src: girder.bash
+          dest: girder.bash
+        - src: worker.bash
+          dest: worker.bash
+
+- hosts: worker
+  user: ubuntu
+  become: true
+  tasks:
+    - name: girder worker | service | start
+      service:
+        name: girder_worker
+        state: restarted
+
+- hosts: web
+  user: ubuntu
+  become: true
+  tasks:
+    - name: girder | service | start
+      service:
+        name: girder
+        state: restarted
+
+    - name: girder | nginx | start
+      service:
+        name: nginx
+        state: restarted
+
+- include: wait_for_girder.yml
+

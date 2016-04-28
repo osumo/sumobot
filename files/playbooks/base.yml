@@ -1,0 +1,75 @@
+---
+
+# expected inventory:
+#
+#                           [group]
+#                      db  mq  prod  stage
+#         STAGE_DB     X    X            X
+# [host]  PROD_DB      X          X
+#         PROD_MQ           X     X
+
+- include: wait_for_ssh.yml
+- include: gather_facts.yml
+
+- hosts: db
+  user: ubuntu
+  become: true
+  tasks:
+    - name: format filesystems
+      filesystem:
+        fstype: ext4
+        dev: /dev/xvdb
+
+    - name: mount filesystems
+      mount:
+        fstype: ext4
+        name: /opt
+        src: /dev/xvdb
+        state: mounted
+
+    - name: mongodb-org repository | key | fetch
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: EA312927
+        state: present
+
+    - name: mongodb-org repository | add
+      apt_repository:
+        repo: "deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse"
+        state: present
+
+    - name: install apt packages
+      apt:
+        name: "{{ item[1] }}"
+        state: present
+        update_cache: "{{ (item[0] == 0)|bool }}"
+      with_indexed_items:
+        - wget
+        - mongodb-org
+
+    - name: mongodb | configure
+      replace:
+        dest: /etc/mongod.conf
+        regexp: "^(\\s*bindIp).*$"
+        replace: "\\1: 0.0.0.0"
+
+    - name: mongodb | restart
+      service:
+        name: mongod
+        state: restarted
+
+- hosts: mq
+  user: ubuntu
+  become: true
+  tasks:
+    - name: install rabbitmq
+      apt:
+        name: rabbitmq-server
+        state: present
+        update_cache: true
+
+    - name: start rabbitmq
+      service:
+        name: rabbitmq-server
+        state: running
+

@@ -1,0 +1,25 @@
+#! /usr/bin/env bash
+
+# this script detects when its contents have been modified (presumably by a
+# reconfiguration via ansible), and will reconfigure the running girder instance
+# if its current version has changed from the most recent one.
+initialization_path="worker_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
+
+cd "$( dirname "$0" )"
+
+source scripts/env
+
+pushd girder_worker
+python -m girder_worker &
+
+if [ '!' -d "$initialization_path" ] ; then
+    rm -rf "worker_init"
+    mkdir -p "$initialization_path"
+    sleep 60
+    export PYTHONPATH=/opt/osumo-project/girder
+fi
+
+popd
+
+wait
+

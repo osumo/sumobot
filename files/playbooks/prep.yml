@@ -1,0 +1,222 @@
+---
+
+# expected inventory:
+#
+#                           [group]
+#                      web worker db queue dynamic
+#         PREP_WEB     X                   X
+# [host]  PREP_WORK        X               X
+#         STAGE_DB+Q              X  X
+
+- include: wait_for_ssh.yml
+- include: gather_facts.yml
+
+- hosts: dynamic
+  user: ubuntu
+  become: true
+  pre_tasks:
+    - name: filesystem | format
+      filesystem:
+        fstype: ext4
+        dev: /dev/xvdb
+
+    - name: filesystem | mount
+      mount:
+        fstype: ext4
+        name: /opt
+        src: /dev/xvdb
+        state: mounted
+
+    - name: python-apt | install
+      apt:
+        name: python-apt
+        state: present
+        update_cache: true
+
+    - name: apt packages | install
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apt-transport-https
+        - build-essential
+        - git
+        - lib32z-dev
+        - libffi-dev
+        - libjpeg-dev
+        - libssl-dev
+        - libxml2-dev
+        - libxslt1-dev
+        - libz-dev
+        - nginx
+        - openssl
+        - python-dev
+        - python-virtualenv
+        - wget
+        - zlib1g-dev
+
+    - name:  nodesource | apt | key | fetch
+      apt_key:
+        url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+        state: present
+
+    - name: nodesource | apt | repository | add
+      apt_repository:
+        repo: "{{ item }} https://deb.nodesource.com/node_0.12 trusty main"
+        state: present
+      with_items:
+        - deb
+        - deb-src
+
+    - name: nodejs | install
+      apt:
+        name: nodejs
+        update_cache: yes
+
+    - name: npm packages | install
+      command: "npm {{ item.value }} -g {{ item.key }}"
+      with_dict:
+        "npm": upgrade
+        "grunt-cli": install
+
+    - name: cran repository | key | fetch
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: E084DAB9
+        state: present
+
+    - name: cran repository | add
+      apt_repository:
+        repo: "deb https://cloud.r-project.org/bin/linux/ubuntu trusty/"
+        state: present
+
+    - name: R apt packages | install
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+      - libcurl4-gnutls-dev
+      - r-base
+
+    - name: R packages | install
+      command: >-
+        Rscript --slave --no-save --no-restore-history -e
+        "if(!('{{ item }}' %in% installed.packages())) { install.packages('{{ item }}', repos='http://cran.rstudio.com') }"
+      with_items:
+        - shiny
+        - jsonlite
+        - pheatmap
+        - survival
+        - igraph
+        - cccd
+        # - devtools
+        # - factoextra devtools::install_github("kassambara/factoextra")
+
+  roles:
+    - role: user-generate
+      name: girder
+      group: girder
+      system: true
+
+  post_tasks:
+    - name: nginx | configure
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/sumo
+
+    - name: disable default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: enable girder nginx site
+      file:
+        path: /etc/nginx/sites-enabled/sumo
+        src: /etc/nginx/sites-available/sumo
+        state: link
+
+    - name: sandbox | permissions | set
+      file:
+        path: /opt
+        owner: girder
+        recurse: yes
+
+- hosts: dynamic
+  user: ubuntu
+  become: true
+  become_user: girder
+  tasks:
+    - name: osumo-project | clone
+      git:
+        dest: /opt/osumo-project
+        recursive: yes
+        repo: "git://github.com/osumo/osumo-project.git"
+        version: "{{ revision }}"
+
+    - name: plugin | osumo | symlink
+      file:
+        src: /opt/osumo-project/osumo
+        dest: /opt/osumo-project/girder/plugins/osumo
+        state: link
+
+    - name: scripts | copy
+      copy:
+        src: ../scripts/girder-post-install.py
+        dest: /opt/osumo-project/girder-post-install.py
+
+    - name: resonant | configure
+      template:
+        src: "../templates/{{ item.src }}.j2"
+        dest: "/opt/osumo-project/{{ item.dest }}"
+      with_items:
+        - src: girder.local.cfg
+          dest: girder/girder/conf/girder.local.cfg
+        - src: worker.local.cfg
+          dest: girder_worker/girder_worker/worker.local.cfg
+        - src: girder.bash
+          dest: girder.bash
+        - src: worker.bash
+          dest: worker.bash
+
+- hosts: worker
+  user: ubuntu
+  become: true
+  roles:
+    - role: upstart
+      name: girder_worker
+      user: girder
+      group: girder
+      description: Girder Worker Execution Engine Service
+      command: "bash -e \"/opt/osumo-project/worker.bash\""
+
+  post_tasks:
+    - name: girder worker | service | start
+      service:
+        name: girder_worker
+        state: restarted
+
+- hosts: web
+  user: ubuntu
+  become: true
+  roles:
+    - role: upstart
+      name: girder
+      user: girder
+      group: girder
+      description: Girder Data Management Platform -- Web Service
+      command: "bash -e \"/opt/osumo-project/girder.bash\""
+
+  post_tasks:
+    - name: girder | service | start
+      service:
+        name: girder
+        state: restarted
+
+    - name: girder | nginx | start
+      service:
+        name: nginx
+        state: restarted
+
+- include: wait_for_girder.yml
+

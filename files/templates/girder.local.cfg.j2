@@ -1,0 +1,17 @@
+
+[global]
+server.socket_host: "0.0.0.0"
+server.socket_port: 8080
+server.thread_pool: 100
+tools.proxy.on: True
+
+[database]
+uri: "mongodb://{{ hostvars[groups["db"][0]]["aws_private_ip"] }}:27017/girder"
+
+[server]
+{% if deploy_mode == "staging" %}
+mode: "development"
+{% else %}
+mode: "production"
+{% endif %}
+

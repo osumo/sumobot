@@ -1,0 +1,19 @@
+
+[default]
+namespace = sumo
+region = us-east-1
+ami = ami-fce3c696
+aws_access_key_id = secret://aws-key-id.asc
+aws_secret_access_key = secret://aws-secret-key.asc
+ssh_key_name = test-ssh
+ssh_key_pub = secret://ssh-key.pub.asc
+ssh_key_sub = secret://ssh-key.sub.asc
+admin_name = secret://admin_name.asc
+admin_pass = secret://admin_pass.asc
+public_name = secret://public_name.asc
+public_pass = secret://public_pass.asc
+s3_production_bucket = secret://s3_production_bucket.asc
+s3_staging_bucket = secret://s3_staging_bucket.asc
+production_ip = secret://production-ip.asc
+staging_ip = secret://staging-ip.asc
+

@@ -1,0 +1,39 @@
+#! /usr/bin/env bash
+
+# this script detects when its contents have been modified (presumably by a
+# reconfiguration via ansible), and will reconfigure the running girder instance
+# if its current version has changed from the most recent one.
+initialization_path="girder_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
+
+cd "$( dirname "$0" )"
+
+export LD_RUN_PATH="/usr/lib32:$LD_RUN_PATH"
+export LD_LIBRARY_PATH="/usr/lib32:$LD_LIBRARY_PATH"
+
+source scripts/env
+
+pushd girder
+npm install
+python setup.py develop
+python -m girder &
+popd
+
+if [ '!' -d "$initialization_path" ] ; then
+    rm -rf "girder_init"
+    mkdir -p "$initialization_path"
+    sleep 60
+    export PYTHONPATH=/opt/osumo-project/girder
+
+    python girder-post-install.py                                                    \
+        --host localhost                                                             \
+        --port 8080                                                                  \
+        --admin "{{ admin_name }}:{{ admin_pass }}"                                  \
+        --sumo-user "{{ public_name }}:{{ public_pass }}"                            \
+        --broker "amqp://guest@{{ hostvars[groups['queue'][0]]['aws_private_ip'] }}" \
+        --s3 "{{ s3_bucket }}"                                                       \
+        --aws-key-id "{{ aws_access_key_id }}"                                       \
+        --aws-secret-key "{{ aws_secret_access_key }}"
+fi
+
+wait
+

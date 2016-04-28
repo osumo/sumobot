@@ -1,0 +1,9 @@
+
+- hosts: all
+  user: ubuntu
+  become: true
+  tasks:
+    - name: gather facts
+      debug:
+        msg: "gathering facts"
+
