@@ -5,7 +5,7 @@ let gpg = require("gpg");
 let path = require("path");
 let child_process = require("child_process");
 
-const onEnvData = (env) => {
+const spawnRobot = (env) => {
   let sumobot = child_process.spawn(
     path.join(".", "bin", "hubot"),
     [ "--adapter", "slack" ],
@@ -23,12 +23,16 @@ const onEnvData = (env) => {
   });
 
   sumobot.on("close", (code) => {
-    console.log(`exited with code: ${code}`);
+    if(code == 42) { /* restart */
+      spawnRobot(env);
+    } else {
+      console.log(`exited with code: ${code}`);
+    }
   });
 };
 
 gpg.decryptFile(
   path.join("files", "bot-environment.json.asc"),
-  (_, buffer) => onEnvData(JSON.parse(buffer.toString()))
+  (_, buffer) => spawnRobot(JSON.parse(buffer.toString()))
 );
 

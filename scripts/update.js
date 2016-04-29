@@ -30,7 +30,8 @@ module.exports = (robot) => {
       res.reply(`upgrading from ${currentRevision} to ${newRevision}`);
       robot.shutdown();
 
-      process.exit(0);
+      console.log("   === RESTARTING ===   ");
+      setTimeout(() => process.exit(42), 1000);
     }
   });
 }
