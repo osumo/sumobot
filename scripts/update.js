@@ -15,6 +15,9 @@ module.exports = (robot) => {
       "git", ["fetch", "--all"], { "stdio": "ignore" }
     );
     child_process.spawnSync(
+      "git", ["checkout", "master"], { "stdio": "ignore" }
+    );
+    child_process.spawnSync(
       "git", ["pull"], { "stdio": "ignore" }
     );
 
