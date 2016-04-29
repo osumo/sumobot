@@ -3,3 +3,7 @@
 **/*.retry
 .vagrant
 scratch/*
+
+node_modules
+.DS_Store*
+.hubot_history
