@@ -52,7 +52,7 @@ module.exports = (robot) => {
           if(match) {
             res.reply(match[1]);
           }
-          process.stdout.write(data[i]);
+          console.log(data[i]);
         }
 
         let last = data[data.length - 1];
@@ -61,7 +61,7 @@ module.exports = (robot) => {
           if(match) {
             res.reply(match[1]);
           }
-          process.stdout.write(last);
+          console.log(last);
         }
       });
 
@@ -70,20 +70,20 @@ module.exports = (robot) => {
         let i;
         for(i=0; i<data.length - 1; ++i) {
           res.reply(`ERR: ${data[i]}`);
-          process.stdout.write(data[i]);
+          console.log(data[i]);
         }
 
         let last = data[data.length - 1];
         if(last !== "") {
           res.reply(`ERR: ${last}`);
-          process.stdout.write(last);
+          console.log(last);
         }
       });
 
       proc.on("close", (code) => {
         if(code !== 0) {
           let msg = `process exited with code: ${code}`;
-          process.stdout.write(msg);
+          console.log(msg);
           res.reply(msg);
         }
         robot.brain.set("devopsInProgress", "none");
