@@ -18,11 +18,11 @@ const spawnRobot = (env) => {
     data = data.toString().split("\n");
     let i;
     for(i=0; i<data.length - 1; ++i) {
-      console.log(`SO: ${data[i]}`);
+      process.stdout.write(`SO: ${data[i]}`);
     }
     let last = data[data.length - 1];
     if(last !== "") {
-      console.log(`SO: ${last}`);
+      process.stdout.write(`SO: ${last}`);
     }
   });
 
@@ -30,11 +30,11 @@ const spawnRobot = (env) => {
     data = data.toString().split("\n");
     let i;
     for(i=0; i<data.length - 1; ++i) {
-      console.log(`SE: ${data[i]}`);
+      process.stdout.write(`SE: ${data[i]}`);
     }
     let last = data[data.length - 1];
     if(last !== "") {
-      console.log(`SE: ${last}`);
+      process.stdout.write(`SE: ${last}`);
     }
   });
 
@@ -42,7 +42,7 @@ const spawnRobot = (env) => {
     if(code == 42) { /* restart */
       spawnRobot(env);
     } else {
-      console.log(`exited with code: ${code}`);
+      process.stdout.write(`exited with code: ${code}`);
     }
   });
 };
