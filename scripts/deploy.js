@@ -90,5 +90,59 @@ module.exports = (robot) => {
       });
     }
   });
+
+  robot.respond(/deploy/i, (res) => {
+    if(!checkDevOps(robot, res, "deploy")) {
+      robot.brain.set("devopsInProgress", "deployment");
+      let commandArgs = ["main.py", "deploy"];
+      let proc = child_process.spawn("python", commandArgs);
+
+      proc.stdout.on("data", (data) => {
+        data = data.toString().split("\n");
+        let i;
+        let match;
+        for(i=0; i<data.length - 1; ++i) {
+          match = data[i].match(/^BOT: (.*)/);
+          if(match) {
+            res.reply(match[1]);
+          }
+          console.log(data[i]);
+        }
+
+        let last = data[data.length - 1];
+        if(last !== "") {
+          match = last.match(/^BOT: (.*)/);
+          if(match) {
+            res.reply(match[1]);
+          }
+          console.log(last);
+        }
+      });
+
+      proc.stderr.on("data", (data) => {
+        data = data.toString().split("\n");
+        let i;
+        for(i=0; i<data.length - 1; ++i) {
+          res.reply(`ERR: ${data[i]}`);
+          console.log(data[i]);
+        }
+
+        let last = data[data.length - 1];
+        if(last !== "") {
+          res.reply(`ERR: ${last}`);
+          console.log(last);
+        }
+      });
+
+      proc.on("close", (code) => {
+        if(code !== 0) {
+          let msg = `process exited with code: ${code}`;
+          console.log(msg);
+          res.reply(msg);
+        }
+        robot.brain.set("devopsInProgress", "none");
+      });
+    }
+  });
 }
 
