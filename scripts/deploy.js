@@ -48,10 +48,14 @@ module.exports = (robot) => {
         if(match) {
           res.reply(match[1]);
         }
+
+        console.log(data.toString())
       });
 
       proc.stderr.on("data", (data) => {
         res.reply(`ERR: ${data}`);
+
+        console.log(data.toString())
       });
 
       proc.on("close", (code) => {
