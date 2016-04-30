@@ -15,13 +15,27 @@ const spawnRobot = (env) => {
   );
 
   sumobot.stdout.on("data", (data) => {
-    data = data.toString();
-    console.log(`SO: ${data.substring(0, data.length - 2)}`);
+    data = data.toString().split("\n");
+    let i;
+    for(i=0; i<data.length - 1; ++i) {
+      console.log(`SO: ${data[i]}`);
+    }
+    let last = data[data.length - 1];
+    if(last !== "") {
+      console.log(`SO: ${last}`);
+    }
   });
 
   sumobot.stderr.on("data", (data) => {
-    data = data.toString();
-    console.log(`SE: ${data.substring(0, data.length - 2)}`);
+    data = data.toString().split("\n");
+    let i;
+    for(i=0; i<data.length - 1; ++i) {
+      console.log(`SE: ${data[i]}`);
+    }
+    let last = data[data.length - 1];
+    if(last !== "") {
+      console.log(`SE: ${last}`);
+    }
   });
 
   sumobot.on("close", (code) => {
