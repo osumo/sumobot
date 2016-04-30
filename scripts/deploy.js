@@ -49,13 +49,13 @@ module.exports = (robot) => {
         if(match) {
           res.reply(match[1]);
         }
-        console.log(data.substring(0, data.length - 1));
+        console.log(data.substring(0, data.length - 2));
       });
 
       proc.stderr.on("data", (data) => {
         data = data.toString();
         res.reply(`ERR: ${data}`);
-        console.log(data.substring(0, data.length - 1));
+        console.log(data.substring(0, data.length - 2));
       });
 
       proc.on("close", (code) => {

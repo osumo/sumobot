@@ -16,12 +16,12 @@ const spawnRobot = (env) => {
 
   sumobot.stdout.on("data", (data) => {
     data = data.toString();
-    console.log(`SO: ${data.substring(0, data.length-1)}`);
+    console.log(`SO: ${data.substring(0, data.length - 1)}`);
   });
 
   sumobot.stderr.on("data", (data) => {
     data = data.toString();
-    console.log(`SE: ${data.substring(0, data.length-1)}`);
+    console.log(`SE: ${data.substring(0, data.length - 1)}`);
   });
 
   sumobot.on("close", (code) => {
