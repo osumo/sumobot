@@ -869,6 +869,7 @@ class Deployment(object):
                     self.ec2.instances.filter(InstanceIds=[
                         instance.id for instance in entry[state]
                     ])
+                )
 
         self.run_play(
             "reconfigure-inventory",
