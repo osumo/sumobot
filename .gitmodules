@@ -1,3 +1,6 @@
 [submodule "osumo-project"]
 	path = osumo-project
 	url = git://github.com/osumo/osumo-project.git
+[submodule "gobig"]
+	path = gobig
+	url = git://github.com/kitware/gobig

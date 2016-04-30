@@ -1,6 +1,7 @@
 
 import os
 import os.path
+import sys
 import time
 
 import itertools as it
@@ -9,13 +10,13 @@ import subprocess as sp
 import boto3
 import botocore.exceptions
 
-_DEVNULL = open(os.devnull, "rb")
+_DEVNULL = open(os.devnull, "wb")
 _SECRET_PREFIX = "secret://"
 
 def get_tag(tag_list, key, default=None):
     result = default
     for tag in tag_list:
-        name = tag.get("Name")
+        name = tag.get("Key")
         if name is None: continue
         if name == key:
             result = tag.get("Value")
@@ -37,6 +38,7 @@ def get_from_parser(parser, key):
 class Deployment(object):
 
     def __init__(self):
+        self.bot_msg_cache = set()
         try:
             from configparser import SafeConfigParser as ConfigParser
         except ImportError:
@@ -181,7 +183,16 @@ class Deployment(object):
 
         self.instances = {}
 
+    def send_bot(self, msg):
+        if msg in self.bot_msg_cache:
+            return
+
+        self.bot_msg_cache.add(msg)
+        print("BOT: {}".format(msg))
+        sys.stdout.flush()
+
     def ensure_static_key_pair(self):
+        self.send_bot("checking key pair")
         key_pair = self.ec2.key_pairs.filter(Filters=[{
             "Name": "key-name", "Values": [self.namespace]
         }])
@@ -198,6 +209,7 @@ class Deployment(object):
         self.key_pair = key_pair
 
     def ensure_static_security_groups(self):
+        self.send_bot("checking security groups")
         security_groups = self.ec2.security_groups.filter(Filters=[{
             "Name": "tag:namespace", "Values": [self.namespace],
         }]).filter(Filters=[{
@@ -330,6 +342,7 @@ class Deployment(object):
                 except botocore.exceptions.ClientError: pass
 
     def ensure_static_instances(self):
+        self.send_bot("checking static instances")
         instances =  self.ec2.instances.filter(Filters=[{
             "Name": "tag:namespace", "Values": [self.namespace]
         }]).filter(Filters=[{
@@ -398,6 +411,7 @@ class Deployment(object):
             ]))
 
     def ensure_dynamic_instances(self, rev="master"):
+        self.send_bot("checking dynamic instances")
         instances =  self.ec2.instances.filter(Filters=[{
             "Name": "tag:namespace", "Values": [self.namespace]
         }]).filter(Filters=[{
@@ -579,13 +593,6 @@ class Deployment(object):
         )
 
         sp.check_call(
-            ["git", "submodule", "update", "gobig"],
-            cwd=submodule,
-            stdout=_DEVNULL,
-            stderr=_DEVNULL,
-        )
-
-        sp.check_call(
             ["git", "fetch", "origin"],
             cwd=submodule,
             stdout=_DEVNULL,
@@ -595,11 +602,15 @@ class Deployment(object):
         sp.check_call(
             ["git", "checkout", rev],
             cwd=submodule,
+            stdout=_DEVNULL,
+            stderr=_DEVNULL,
         )
 
         sp.check_call(
             ["git", "pull", "origin", rev],
             cwd=submodule,
+            stdout=_DEVNULL,
+            stderr=_DEVNULL,
         )
 
         rev = sp.check_output(
@@ -608,15 +619,24 @@ class Deployment(object):
             stderr=_DEVNULL,
         )[:-1]
 
-        already_staged = (
-            self.instances.get("web") and
-            isinstance(self.instances.get("web"), dict) and
-            self.instances.get("web").get("staged") and
-            get_tag(
-                self.instances["web"]["staged"][0].tags,
-                "revision",
-            ) == rev
+        staged_web = list(
+            self.ec2.instances.filter(Filters=[{
+                "Name": "tag:namespace", "Values": [self.namespace],
+            }]).filter(Filters=[{
+                "Name": "tag:role", "Values": ["web"],
+            }]).filter(Filters=[{
+                "Name": "instance-state-name", "Values": [
+                    "pending", "running", "stopping", "stopped"
+                ]
+            }]).filter(Filters=[{
+                "Name": "tag:state", "Values": ["staged"]
+            }])
         )
+
+        already_staged = False
+        if staged_web:
+            already_staged = (
+                get_tag(staged_web[0].tags, "revision") == rev)
 
         return rev, already_staged
 
@@ -648,6 +668,7 @@ class Deployment(object):
 
     def rolling_base(self):
         self.ensure_static_resources()
+        self.send_bot("provisioning base services")
 
         fragment = self.generate_inventory_fragment
 
@@ -671,6 +692,7 @@ class Deployment(object):
 
     def rolling_stage(self, rev="master"):
         rev, already_staged = self.check_rev(rev)
+        self.send_bot("staging revision: {}".format(rev))
 
         instance_query = None
         for role in self.dynamic_instance_conf.keys():
@@ -807,6 +829,7 @@ class Deployment(object):
         for instance in journal: instance.wait_until_terminated()
 
     def rolling_deploy(self):
+        self.send_bot("deploying")
         fragment = self.generate_inventory_fragment
         inventory_path = os.path.join("scratch", "reconfigure-inventory")
 

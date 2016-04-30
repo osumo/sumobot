@@ -5,23 +5,8 @@ import shutil
 import sys
 
 from argparse import ArgumentParser
-from contextlib import contextmanager
 
 from deployment import Deployment
-
-class FileLockError(Exception):
-    pass
-
-@contextmanager
-def file_lock():
-    dir_path = os.path.join(os.getcwd(), "lock")
-    try:
-        os.mkdir(dir_path)
-    except OSError:
-        raise FileLockError()
-    else:
-        yield
-        shutil.rmtree(dir_path)
 
 def deploy(args):
     D = Deployment()
@@ -29,13 +14,19 @@ def deploy(args):
     D.rolling_base()
     D.ensure_dynamic_instances(args.revision)
     D.rolling_deploy()
+    D.send_bot("deploy complete")
 
 def stage(args):
     D = Deployment()
-    D.ensure_static_resources()
-    D.rolling_base()
-    D.ensure_dynamic_instances(args.revision)
-    D.rolling_stage(args.revision)
+    rev, staged = D.check_rev(args.revision)
+    if staged:
+        D.send_bot("revision {} already staged".format(rev))
+    else:
+        D.ensure_static_resources()
+        D.rolling_base()
+        D.ensure_dynamic_instances(args.revision)
+        D.rolling_stage(args.revision)
+        D.send_bot("revision {} successfully staged".format(rev))
 
 def status(args):
     pass
@@ -66,12 +57,17 @@ if __name__ == "__main__":
     need_file_lock = args.operation in ("deploy", "stage", "update")
 
     if need_file_lock:
+        dir_path = os.path.join(os.getcwd(), "lock")
         try:
-            with file_lock():
-                main(args)
-        except FileLockError:
+            os.mkdir(dir_path)
+        except OSError:
             sys.stderr.write("locking operation currently taking place\n")
             sys.exit(1)
+
+        try:
+            main(args)
+        finally:
+            shutil.rmtree(dir_path)
     else:
         main(args)
 

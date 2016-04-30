@@ -1,14 +1,34 @@
+/*
+ * Description:
+ *   updates hubot to the latest version from origin/master
+ *
+ * Dependencies:
+ *   "git (command line)": ""
+ *
+ * Configuration:
+ *
+ * Commands:
+ *   hubot update - updates this bot's code to the latest version
+ *
+ * Author:
+ *   opadron
+ */
 
 "use strict";
 
 let child_process = require("child_process");
 
 module.exports = (robot) => {
-  let currentRevision = child_process.spawnSync(
-    "git",
-    [ "rev-parse", "--no-flags", "HEAD"],
-    { "stdio": ["ignore", "pipe", "ignore"] }
-  ).stdout.toString();
+  let currentBotRevision = robot.brain.get("currentBotRevision");
+  if(!currentBotRevision) {
+    currentBotRevision = child_process.spawnSync(
+      "git",
+      [ "rev-parse", "--no-flags", "HEAD"],
+      { "stdio": ["ignore", "pipe", "ignore"] }
+    ).stdout.toString();
+
+    robot.brain.set("currentBotRevision", currentBotRevision);
+  }
 
   robot.respond(/update/i, (res) => {
     child_process.spawnSync(
@@ -21,16 +41,23 @@ module.exports = (robot) => {
       "git", ["pull"], { "stdio": "ignore" }
     );
 
-    let newRevision = child_process.spawnSync(
+    let newBotRevision = child_process.spawnSync(
       "git",
-      [ "rev-parse", "--no-flags", "HEAD"],
+      ["rev-parse", "--no-flags", "HEAD"],
       { "stdio": ["ignore", "pipe", "ignore"] }
     ).stdout.toString();
 
-    if(newRevision == currentRevision) {
-      res.reply(`already at latest revision: ${currentRevision}`);
+    if(newBotRevision == currentBotRevision) {
+      res.reply(`already at latest revision: ${currentBotRevision}`);
     } else {
-      res.reply(`upgrading from ${currentRevision} to ${newRevision}`);
+      res.reply(`upgrading from ${currentBotRevision} to ${newBotRevision}`);
+      child_process.spawnSync(
+        "git",
+        ["submodule", "update", "gobig"],
+        { "stdio": "ignore" }
+      );
+
+      robot.brain.set("currentBotRevision", newBotRevision);
       robot.shutdown();
 
       console.log("   === RESTARTING ===   ");
