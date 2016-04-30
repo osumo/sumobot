@@ -817,7 +817,6 @@ class Deployment(object):
                 "dynamic": (("web", "staged"), ("worker", "staged"))
             },
             {
-                "revision": rev,
                 "admin_name": self.admin_name,
                 "admin_pass": self.admin_pass,
                 "public_name": self.public_name,
@@ -883,7 +882,6 @@ class Deployment(object):
                 "dynamic": (("web", "staged"), ("worker", "staged"))
             },
             {
-                "revision": rev,
                 "admin_name": self.admin_name,
                 "admin_pass": self.admin_pass,
                 "public_name": self.public_name,
