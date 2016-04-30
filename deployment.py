@@ -183,7 +183,8 @@ class Deployment(object):
 
         self.instances = {}
 
-    def run_play(inventory_name, playbook_name, fragments, global_vars=None):
+    def run_play(self, inventory_name, playbook_name, fragments,
+                 global_vars=None):
         if global_vars is None: global_vars = {}
         inventory_path = os.path.join("scratch", inventory_name)
 
