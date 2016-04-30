@@ -10,7 +10,7 @@ from girder.constants import AssetstoreType
 from girder_client import GirderClient
 
 def find_user(username):
-    result = False
+    result = None
     offset = 0
     while True:
         users = client.get(
@@ -26,8 +26,8 @@ def find_user(username):
         if not users: break
 
         for user in users:
-            result = (user["login"] == username)
-            if result:
+            if user["login"] == username:
+                result = user
                 break
 
         if result:
@@ -41,7 +41,18 @@ def ensure_user(client, **kwds):
     username = kwds['login']
     password = kwds['password']
 
-    if not find_user(username):
+    user = find_user(username)
+    if user:
+        client.put(
+            'user/{}'.format(user["_id"]),
+            parameters=dict(email=kwds['email'],
+                            firstName=kwds['firstName'],
+                            lastName=kwds['lastName']))
+
+        client.put(
+            'user/{}/password'.format(user["_id"]),
+            parameters=dict(password=password))
+    else:
         client.post('user', parameters=dict(login=username,
                                             password=password,
                                             email=kwds['email'],

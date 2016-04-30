@@ -183,6 +183,27 @@ class Deployment(object):
 
         self.instances = {}
 
+    def run_play(inventory_name, playbook_name, fragments, global_vars=None):
+        if global_vars is None: global_vars = {}
+        inventory_path = os.path.join("scratch", inventory_name)
+
+        with open(inventory_path, "w") as f:
+            f.write("\n".join(
+                self.generate_inventory_fragment(
+                    group_name, group_keys, global_vars)
+
+                for group_name, group_keys in fragments.items()
+            ))
+
+            f.flush()
+
+        sp.check_call([
+            "ansible-playbook",
+            "-i",
+            inventory_path,
+            os.path.join("files", "playbooks", playbook_name),
+        ])
+
     def send_bot(self, msg):
         if msg in self.bot_msg_cache:
             return
@@ -507,64 +528,32 @@ class Deployment(object):
                     ])
                 )
 
-            fragment = self.generate_inventory_fragment
-
-            inventory_path = os.path.join("scratch", "prep-inventory")
-            with open(inventory_path, "w") as f:
-                db_fragment = None
-                queue_fragment = None
-
-                if state == "live":
-                    db_fragment = fragment("db", ("p/db",))
-                    queue_fragment = fragment("queue", ("p/queue",))
-                else:
-                    db_fragment = fragment("db", ("s/db+mq",))
-                    queue_fragment = fragment("queue", ("s/db+mq",))
-
-                f.write("\n".join((
-                    fragment("web", (("web", state),)),
-                    fragment("worker", (("worker", state),)),
-                    db_fragment,
-                    queue_fragment,
-                    fragment(
-                        "dynamic",
-                        (
-                            ("web", state),
-                            ("worker", state)
-                        )
-                    ),
-                )))
-
-                f.flush()
-
-            sp.check_call([
-                "ansible-playbook",
-                "-i",
-                inventory_path,
-                "-e", "=".join(("revision", rev)),
-                "-e", "=".join(("admin_name", self.admin_name)),
-                "-e", "=".join(("admin_pass", self.admin_pass)),
-                "-e", "=".join(("public_name", self.public_name)),
-                "-e", "=".join(("public_pass", self.public_pass)),
-                "-e", "=".join((
-                    "deploy_mode", (
-                        "production"
-                        if state == "live" else
-                        "staging"
-                    )
-                )),
-                "-e", "=".join((
-                    "s3_bucket", (
+            self.run_play(
+                "prep-inventory",
+                "prep.yml",
+                {
+                    "web": (("web", state),),
+                    "worker": (("worker", state),),
+                    "db": ("p/db",) if state == "live" else ("s/db+mq",),
+                    "queue": ("p/queue",) if state == "live" else ("s/db+mq",),
+                    "dynamic": (("web", state), ("worker", state))
+                },
+                {
+                    "revision": rev,
+                    "admin_name": self.admin_name,
+                    "admin_pass": self.admin_pass,
+                    "public_name": self.public_name,
+                    "public_pass": self.public_pass,
+                    "deploy_mode": (
+                        "production" if state == "live" else "staging"),
+                    "s3_bucket": (
                         self.s3_production_bucket
                         if state == "live" else
-                        self.s3_staging_bucket
-                    )
-                )),
-                "-e", "=".join(("aws_access_key_id", self.aws_access_key_id)),
-                "-e", "=".join((
-                    "aws_secret_access_key", self.aws_secret_access_key)),
-                os.path.join("files", "playbooks", "prep.yml"),
-            ])
+                        self.s3_staging_bucket),
+                    "aws_access_key_id": self.aws_access_key_id,
+                    "aws_secret_access_key": self.aws_secret_access_key,
+                }
+            )
 
             next(iter(
                 self.ec2.vpc_addresses.filter(PublicIps=[
@@ -640,7 +629,7 @@ class Deployment(object):
 
         return rev, already_staged
 
-    def generate_inventory_fragment_iterator(self, group, keys):
+    def generate_inventory_fragment_iterator(self, group, keys, env):
         if group is not None:
             yield "[{}]".format(group)
 
@@ -663,32 +652,30 @@ class Deployment(object):
 
         yield ""
 
-    def generate_inventory_fragment(self, group, keys):
-        return "\n".join(self.generate_inventory_fragment_iterator(group, keys))
+        if group is not None:
+            yield "[{}:vars]".format(group)
+
+            for key, value in env.items():
+                yield "{}={}".format(key, value)
+
+    def generate_inventory_fragment(self, group, keys, env):
+        return "\n".join(
+            self.generate_inventory_fragment_iterator(group, keys, env))
 
     def rolling_base(self):
         self.ensure_static_resources()
         self.send_bot("provisioning base services")
 
-        fragment = self.generate_inventory_fragment
-
-        inventory_path = os.path.join("scratch", "base-inventory")
-        with open(inventory_path, "w") as f:
-            f.write("\n".join((
-                fragment("db", ("s/db+mq", "p/db")),
-                fragment("mq", ("s/db+mq", "p/queue")),
-                fragment("stage", ("s/db+mq",)),
-                fragment("prod", ("p/db", "p/queue")),
-            )))
-
-            f.flush()
-
-        sp.check_call([
-            "ansible-playbook",
-            "-i",
-            inventory_path,
-            os.path.join("files", "playbooks", "base.yml"),
-        ])
+        self.run_play(
+            "base-inventory",
+            "base.yml",
+            {
+                "db": ("s/db+mq", "p/db"),
+                "mq": ("s/db+mq", "p/queue"),
+                "stage": ("s/db+mq", ),
+                "prod": ("p/queue", ),
+            }
+        )
 
     def rolling_stage(self, rev="master"):
         rev, already_staged = self.check_rev(rev)
@@ -769,42 +756,29 @@ class Deployment(object):
                 ]
             ))
 
-        fragment = self.generate_inventory_fragment
+        self.run_play(
+            "prep-inventory",
+            "prep.yml",
+            {
+                "web": (("web", "pending"),),
+                "worker": (("worker", "pending"),),
+                "db": ("s/db+mq",),
+                "queue": ("s/db+mq",),
+                "dynamic": (("web", "pending"), ("worker", "pending"))
+            },
+            {
+                "revision": rev,
+                "admin_name": self.admin_name,
+                "admin_pass": self.admin_pass,
+                "public_name": self.public_name,
+                "public_pass": self.public_pass,
+                "deploy_mode": "staging",
+                "s3_bucket": self.s3_staging_bucket,
+                "aws_access_key_id": self.aws_access_key_id,
+                "aws_secret_access_key": self.aws_secret_access_key,
+            }
+        )
 
-        inventory_path = os.path.join("scratch", "prep-inventory")
-        with open(inventory_path, "w") as f:
-            f.write("\n".join((
-                fragment("web", (("web", "pending"),)),
-                fragment("worker", (("worker", "pending"),)),
-                fragment("db", ("s/db+mq",)),
-                fragment("queue", ("s/db+mq",)),
-                fragment(
-                    "dynamic",
-                    (
-                        ("web", "pending"),
-                        ("worker", "pending")
-                    )
-                ),
-            )))
-
-            f.flush()
-
-        sp.check_call([
-            "ansible-playbook",
-            "-i",
-            inventory_path,
-            "-e", "=".join(("revision", rev)),
-            "-e", "=".join(("admin_name", self.admin_name)),
-            "-e", "=".join(("admin_pass", self.admin_pass)),
-            "-e", "=".join(("public_name", self.public_name)),
-            "-e", "=".join(("public_pass", self.public_pass)),
-            "-e", "=".join(("deploy_mode", "staging")),
-            "-e", "=".join(("aws_access_key_id", self.aws_access_key_id)),
-            "-e", "=".join((
-                "aws_secret_access_key", self.aws_secret_access_key)),
-            "-e", "=".join(("s3_bucket", self.s3_staging_bucket)),
-            os.path.join("files", "playbooks", "prep.yml"),
-        ])
 
         next(iter(
             self.ec2.vpc_addresses.filter(PublicIps=[self.staging_ip])
@@ -830,42 +804,29 @@ class Deployment(object):
 
     def rolling_deploy(self):
         self.send_bot("deploying")
-        fragment = self.generate_inventory_fragment
-        inventory_path = os.path.join("scratch", "reconfigure-inventory")
 
-        # reconfigure staged
-        with open(inventory_path, "w") as f:
-            f.write("\n".join((
-                fragment("web", (("web", "staged"),)),
-                fragment("worker", (("worker", "staged"),)),
-                fragment("db", ("p/db",)),
-                fragment("queue", ("p/queue",)),
-                fragment(
-                    "dynamic",
-                    (
-                        ("web", "staged"),
-                        ("worker", "staged")
-                    )
-                ),
-            )))
-
-            f.flush()
-
-        sp.check_call([
-            "ansible-playbook",
-            "-i",
-            inventory_path,
-            "-e", "=".join(("admin_name", self.admin_name)),
-            "-e", "=".join(("admin_pass", self.admin_pass)),
-            "-e", "=".join(("public_name", self.public_name)),
-            "-e", "=".join(("public_pass", self.public_pass)),
-            "-e", "=".join(("deploy_mode", "production")),
-            "-e", "=".join(("aws_access_key_id", self.aws_access_key_id)),
-            "-e", "=".join((
-                "aws_secret_access_key", self.aws_secret_access_key)),
-            "-e", "=".join(("s3_bucket", self.s3_production_bucket)),
-            os.path.join("files", "playbooks", "reconfigure.yml"),
-        ])
+        self.run_play(
+            "reconfigure-inventory",
+            "reconfigure.yml",
+            {
+                "web": (("web", "staged"),),
+                "worker": (("worker", "staged"),),
+                "db": ("p/db",),
+                "queue": ("p/queue",),
+                "dynamic": (("web", "staged"), ("worker", "staged"))
+            },
+            {
+                "revision": rev,
+                "admin_name": self.admin_name,
+                "admin_pass": self.admin_pass,
+                "public_name": self.public_name,
+                "public_pass": self.public_pass,
+                "deploy_mode": "production",
+                "s3_bucket": self.s3_production_bucket,
+                "aws_access_key_id": self.aws_access_key_id,
+                "aws_secret_access_key": self.aws_secret_access_key,
+            }
+        )
 
         # swap ips
         next(iter(
@@ -908,42 +869,29 @@ class Deployment(object):
                     self.ec2.instances.filter(InstanceIds=[
                         instance.id for instance in entry[state]
                     ])
-                )
 
-        # reconfigure live (now staged)
-        with open(inventory_path, "w") as f:
-            f.write("\n".join((
-                fragment("web", (("web", "staged"),)),
-                fragment("worker", (("worker", "staged"),)),
-                fragment("db", ("s/db+mq",)),
-                fragment("queue", ("s/db+mq",)),
-                fragment(
-                    "dynamic",
-                    (
-                        ("web", "staged"),
-                        ("worker", "staged")
-                    )
-                ),
-            )))
-
-            f.flush()
-
-        sp.check_call([
-            "ansible-playbook",
-            "-i",
-            inventory_path,
-            "-e", "=".join(("admin_name", self.admin_name)),
-            "-e", "=".join(("admin_pass", self.admin_pass)),
-            "-e", "=".join(("public_name", self.public_name)),
-            "-e", "=".join(("public_pass", self.public_pass)),
-            "-e", "=".join(("deploy_mode", "staging")),
-            "-e", "=".join(("aws_access_key_id", self.aws_access_key_id)),
-            "-e", "=".join((
-                "aws_secret_access_key", self.aws_secret_access_key)),
-            "-e", "=".join(("s3_bucket", self.s3_staging_bucket)),
-            os.path.join("files", "playbooks", "reconfigure.yml"),
-        ])
-
+        self.run_play(
+            "reconfigure-inventory",
+            "reconfigure.yml",
+            {
+                "web": (("web", "staged"),),
+                "worker": (("worker", "staged"),),
+                "db": ("s/db+mq",),
+                "queue": ("s/db+mq",),
+                "dynamic": (("web", "staged"), ("worker", "staged"))
+            },
+            {
+                "revision": rev,
+                "admin_name": self.admin_name,
+                "admin_pass": self.admin_pass,
+                "public_name": self.public_name,
+                "public_pass": self.public_pass,
+                "deploy_mode": "staging",
+                "s3_bucket": self.s3_staging_bucket,
+                "aws_access_key_id": self.aws_access_key_id,
+                "aws_secret_access_key": self.aws_secret_access_key,
+            }
+        )
 
     def ensure_static_resources(self):
         self.ensure_static_key_pair()
