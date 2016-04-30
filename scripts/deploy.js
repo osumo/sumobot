@@ -44,23 +44,25 @@ module.exports = (robot) => {
       let proc = child_process.spawn("python", commandArgs);
 
       proc.stdout.on("data", (data) => {
-        let match = data.toString().match(/^BOT: (.*)/);
+        data = data.toString();
+        let match = data.match(/^BOT: (.*)/);
         if(match) {
           res.reply(match[1]);
         }
-
-        console.log(data.toString())
+        console.log(data.substring(0, data.length - 1));
       });
 
       proc.stderr.on("data", (data) => {
+        data = data.toString();
         res.reply(`ERR: ${data}`);
-
-        console.log(data.toString())
+        console.log(data.substring(0, data.length - 1));
       });
 
       proc.on("close", (code) => {
         if(code !== 0) {
-          res.reply(`process exited with code: ${code}`);
+          let msg = `process exited with code: ${code}`;
+          console.log(msg);
+          res.reply(msg);
         }
         robot.brain.set("devopsInProgress", "none");
       });
