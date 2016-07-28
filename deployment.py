@@ -7,6 +7,8 @@ import time
 import itertools as it
 import subprocess as sp
 
+from contextlib import contextmanager
+
 import boto3
 import botocore.exceptions
 
@@ -38,6 +40,7 @@ def get_from_parser(parser, key):
 class Deployment(object):
 
     def __init__(self):
+        self.security_count = 0
         self.bot_msg_cache = set()
         try:
             from configparser import SafeConfigParser as ConfigParser
@@ -99,17 +102,6 @@ class Deployment(object):
 
         self.static_security_group_conf = (
             {
-                "name": "all-open",
-                "rules": (
-                    {
-                        "flow": "sym",
-                        "proto": "all",
-                        "cidr_ip": "0.0.0.0/0"
-                    },
-                )
-            },
-
-            {
                 "name": "web",
                 "rules": (
                     {
@@ -128,7 +120,7 @@ class Deployment(object):
                     {
                         "flow": "sym",
                         "proto": "all",
-                        "groups": ("internal",)
+                        "groups": ("internal", "temp", "web")
                     },
                 )
             },
@@ -139,7 +131,31 @@ class Deployment(object):
                     {
                         "flow": "sym",
                         "proto": "all",
-                        "groups": ("internal", "web")
+                        "groups": ("internal", "temp", "web")
+                    },
+                )
+            },
+
+            {
+                "name": "temp",
+                "rules": (
+                    {
+                        "flow": "in",
+                        "proto": "tcp",
+                        "port": [22, 80, 443, 8080],
+                        "cidr_ip": "0.0.0.0/0"
+                    },
+
+                    {
+                        "flow": "out",
+                        "proto": "all",
+                        "cidr_ip": "0.0.0.0/0"
+                    },
+
+                    {
+                        "flow": "sym",
+                        "proto": "all",
+                        "groups": ("internal", "temp", "web")
                     },
                 )
             },
@@ -380,6 +396,7 @@ class Deployment(object):
             count = instance.get("count", 1)
             i_type = instance.get("type", "t2.nano")
             volumes = instance.get("volumes", [])
+            groups = instance.get("groups", [])
 
             subinstances = instances.filter(Filters=[{
                 "Name": "tag:role", "Values": [role],
@@ -406,7 +423,10 @@ class Deployment(object):
                         }
                         for (index, volume) in enumerate(volumes)
                     ],
-                    SecurityGroups=["all-open"]
+                    SecurityGroupIds=[
+                        self.static_security_groups[group_name]
+                        for group_name in groups
+                    ]
                 )
 
                 journal_entry.extend(new_instances)
@@ -483,6 +503,7 @@ class Deployment(object):
                 count = instance.get("count", 1)
                 i_type = instance.get("type", "t2.nano")
                 volumes = instance.get("volumes", [])
+                groups = instance.get("groups", [])
 
                 new_instances = self.ec2.create_instances(
                     ImageId=self.ami,
@@ -500,7 +521,10 @@ class Deployment(object):
                         }
                         for (index, volume) in enumerate(volumes)
                     ],
-                    SecurityGroups=["all-open"]
+                    SecurityGroupIds=[
+                        self.static_security_groups[group_name]
+                        for group_name in groups
+                    ]
                 )
 
                 for instance in new_instances:
@@ -573,6 +597,54 @@ class Deployment(object):
                         {"Key": "revision", "Value": rev},
                     ])
 
+    def open_security(self):
+        static_sg = self.static_security_groups["temp"]
+
+        for instance in self.ec2.instances.filter(Filters=[{
+                    "Name": "tag:namespace", "Values": [self.namespace]
+                }]).filter(Filters=[{
+                    "Name": "instance-state-name", "Values": [
+                        "pending", "running", "stopping", "stopped"
+                    ]
+                }]):
+            security_groups = [sg["GroupId"] for sg in instance.security_groups]
+            need_temp = all(sg != static_sg for sg in security_groups)
+
+            if need_temp:
+                self.ec2.meta.client.modify_instance_attribute(
+                    InstanceId=instance.id,
+                    Groups=security_groups + [static_sg])
+
+    def close_security(self):
+        static_sg = self.static_security_groups["temp"]
+
+        for instance in self.ec2.instances.filter(Filters=[{
+                    "Name": "tag:namespace", "Values": [self.namespace]
+                }]).filter(Filters=[{
+                    "Name": "instance-state-name", "Values": [
+                        "pending", "running", "stopping", "stopped"
+                    ]
+                }]):
+            security_groups = [sg["GroupId"] for sg in instance.security_groups]
+            remove_temp = any(sg == static_sg for sg in security_groups)
+
+            if remove_temp:
+                self.ec2.meta.client.modify_instance_attribute(
+                    InstanceId=instance.id,
+                    Groups=[sg for sg in security_groups if sg != static_sg])
+
+    @contextmanager
+    def security(self):
+        if self.security_count == 0:
+            self.open_security()
+
+        self.security_count += 1
+        yield
+
+        self.security_count -= 1
+        if self.security_count == 0:
+            self.close_security()
+
     def check_rev(self, rev="master"):
         submodule = "osumo-project"
 
@@ -583,11 +655,31 @@ class Deployment(object):
         )
 
         sp.check_call(
-            ["git", "fetch", "origin"],
+            ["git", "fetch", "--all"],
             cwd=submodule,
             stdout=_DEVNULL,
             stderr=_DEVNULL,
         )
+
+        sp.check_call(
+            ["git", "checkout", "master"],
+            cwd=submodule,
+            stdout=_DEVNULL,
+            stderr=_DEVNULL,
+        )
+
+        sp.check_call(
+            ["git", "pull"],
+            cwd=submodule,
+            stdout=_DEVNULL,
+            stderr=_DEVNULL,
+        )
+
+        rev = sp.check_output(
+            ["git", "rev-parse", "--no-flags", rev],
+            cwd=submodule,
+            stderr=_DEVNULL,
+        )[:-1]
 
         sp.check_call(
             ["git", "checkout", rev],
@@ -595,19 +687,6 @@ class Deployment(object):
             stdout=_DEVNULL,
             stderr=_DEVNULL,
         )
-
-        sp.check_call(
-            ["git", "pull", "origin", rev],
-            cwd=submodule,
-            stdout=_DEVNULL,
-            stderr=_DEVNULL,
-        )
-
-        rev = sp.check_output(
-            ["git", "rev-parse", "--no-flags", "HEAD"],
-            cwd=submodule,
-            stderr=_DEVNULL,
-        )[:-1]
 
         staged_web = list(
             self.ec2.instances.filter(Filters=[{
@@ -711,6 +790,7 @@ class Deployment(object):
             count = instance.get("count", 1)
             i_type = instance.get("type", "t2.nano")
             volumes = instance.get("volumes", [])
+            groups = instance.get("groups", [])
 
             new_instances = self.ec2.create_instances(
                 ImageId=self.ami,
@@ -728,7 +808,10 @@ class Deployment(object):
                     }
                     for (index, volume) in enumerate(volumes)
                 ],
-                SecurityGroups=["all-open"]
+                SecurityGroupIds=[
+                    self.static_security_groups[group_name]
+                    for group_name in (groups + ["temp"])
+                ]
             )
 
             for instance in new_instances:
