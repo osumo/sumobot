@@ -11,9 +11,12 @@ from deployment import Deployment
 def deploy(args):
     D = Deployment()
     D.ensure_static_resources()
-    D.rolling_base()
-    D.ensure_dynamic_instances(args.revision)
-    D.rolling_deploy()
+
+    with D.security():
+        D.rolling_base()
+        D.ensure_dynamic_instances(args.revision)
+        D.rolling_deploy()
+
     D.send_bot("deploy complete")
 
 def stage(args):
@@ -23,9 +26,11 @@ def stage(args):
         D.send_bot("revision {} already staged".format(rev))
     else:
         D.ensure_static_resources()
-        D.rolling_base()
-        D.ensure_dynamic_instances(args.revision)
-        D.rolling_stage(args.revision)
+        with D.security():
+            D.rolling_base()
+            D.ensure_dynamic_instances(args.revision)
+            D.rolling_stage(args.revision)
+
         D.send_bot("revision {} successfully staged".format(rev))
 
 def status(args):
