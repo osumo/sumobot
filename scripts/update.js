@@ -32,25 +32,25 @@ module.exports = (robot) => {
 
   robot.respond(/update/i, (res) => {
     child_process.spawnSync(
-      "git", ["fetch", "--all"], { "stdio": "ignore" }
-    );
-    child_process.spawnSync(
-      "git", ["checkout", "master"], { "stdio": "ignore" }
-    );
-    child_process.spawnSync(
-      "git", ["pull"], { "stdio": "ignore" }
+      "git", ["fetch", "--all", "--prune"], { "stdio": "ignore" }
     );
 
     let newBotRevision = child_process.spawnSync(
       "git",
-      ["rev-parse", "--no-flags", "HEAD"],
-      { "stdio": ["ignore", "pipe", "ignore"] }
-    ).stdout.toString();
+      ["rev-parse", "--no-flags", "origin/master"],
+      {"stdio": ["ignore", "pipe", "ignore"]}
+    ).stdout.toString()
 
     if(newBotRevision == currentBotRevision) {
       res.reply(`already at latest revision: ${currentBotRevision}`);
     } else {
       res.reply(`upgrading from ${currentBotRevision} to ${newBotRevision}`);
+
+      child_process.spawnSync(
+        "git", ["checkout", "master"], { "stdio": "ignore" }
+      );
+
+      child_process.spawnSync("git", ["pull"], { "stdio": "ignore" });
       child_process.spawnSync(
         "git",
         ["submodule", "update", "gobig"],
