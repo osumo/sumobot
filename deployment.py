@@ -667,18 +667,28 @@ class Deployment(object):
         )
 
         sp.check_call(
-            ["git", "checkout", "master"],
+            ["git", "checkout", rev],
             cwd=submodule,
             stdout=_DEVNULL,
             stderr=_DEVNULL,
         )
 
-        sp.check_call(
-            ["git", "pull"],
-            cwd=submodule,
-            stdout=_DEVNULL,
-            stderr=_DEVNULL,
+        is_branch = (
+            sp.check_output(
+                ["git", "status", "--branch", "--porcelain"]
+                cwd=submodule,
+                stdout=sp.PIPE,
+                stderr=_DEVNULL,
+            ).split("\n")[0] != "## HEAD (no branch)"
         )
+
+        if is_branch:
+            sp.check_call(
+                ["git", "pull"],
+                cwd=submodule,
+                stdout=_DEVNULL,
+                stderr=_DEVNULL,
+            )
 
         rev = sp.check_output(
             ["git", "rev-parse", "--no-flags", rev],
