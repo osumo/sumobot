@@ -675,7 +675,7 @@ class Deployment(object):
 
         is_branch = (
             sp.check_output(
-                ["git", "status", "--branch", "--porcelain"]
+                ["git", "status", "--branch", "--porcelain"],
                 cwd=submodule,
                 stdout=sp.PIPE,
                 stderr=_DEVNULL,
