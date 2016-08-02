@@ -677,7 +677,6 @@ class Deployment(object):
             sp.check_output(
                 ["git", "status", "--branch", "--porcelain"],
                 cwd=submodule,
-                stdout=sp.PIPE,
                 stderr=_DEVNULL,
             ).split("\n")[0] != "## HEAD (no branch)"
         )
