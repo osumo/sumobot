@@ -66,6 +66,10 @@ class Deployment(object):
         self.staging_ip    = get_from_parser(parser, "staging_ip")
         self.production_ip = get_from_parser(parser, "production_ip")
 
+        self.ssl_cert = get_from_parser(parser, "ssl_cert")
+        self.ssl_chain = get_from_parser(parser, "ssl_chain")
+        self.ssl_key = get_from_parser(parser, "ssl_key")
+
         self.s3_staging_bucket = (
             get_from_parser(parser, "s3_staging_bucket"))
         self.s3_production_bucket = (
@@ -582,6 +586,9 @@ class Deployment(object):
                         self.s3_staging_bucket),
                     "aws_access_key_id": self.aws_access_key_id,
                     "aws_secret_access_key": self.aws_secret_access_key,
+                    "ssl_cert": self.ssl_cert,
+                    "ssl_chain": self.ssl_chain,
+                    "ssl_key": self.ssl_key,
                 }
             )
 
@@ -874,6 +881,9 @@ class Deployment(object):
                 "s3_bucket": self.s3_staging_bucket,
                 "aws_access_key_id": self.aws_access_key_id,
                 "aws_secret_access_key": self.aws_secret_access_key,
+                "ssl_cert": self.ssl_cert,
+                "ssl_chain": self.ssl_chain,
+                "ssl_key": self.ssl_key,
             }
         )
 
@@ -922,6 +932,9 @@ class Deployment(object):
                 "s3_bucket": self.s3_production_bucket,
                 "aws_access_key_id": self.aws_access_key_id,
                 "aws_secret_access_key": self.aws_secret_access_key,
+                "ssl_cert": self.ssl_cert,
+                "ssl_chain": self.ssl_chain,
+                "ssl_key": self.ssl_key,
             }
         )
 
@@ -987,6 +1000,9 @@ class Deployment(object):
                 "s3_bucket": self.s3_staging_bucket,
                 "aws_access_key_id": self.aws_access_key_id,
                 "aws_secret_access_key": self.aws_secret_access_key,
+                "ssl_cert": self.ssl_cert,
+                "ssl_chain": self.ssl_chain,
+                "ssl_key": self.ssl_key,
             }
         )
 
