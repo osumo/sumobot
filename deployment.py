@@ -1,4 +1,5 @@
 
+import json
 import os
 import os.path
 import sys
@@ -211,12 +212,18 @@ class Deployment(object):
     def run_play(self, inventory_name, playbook_name, fragments,
                  global_vars=None):
         if global_vars is None: global_vars = {}
-        inventory_path = os.path.join("scratch", inventory_name)
+        inventory_dir = os.path.join("scratch", inventory_name)
+        inventory_path = os.path.join(inventory_dir, "hosts")
+
+        try:
+            os.mkdir(inventory_dir)
+        except OSError:
+            pass
 
         with open(inventory_path, "w") as f:
             f.write("\n".join(
                 self.generate_inventory_fragment(
-                    group_name, group_keys, global_vars)
+                    group_name, group_keys, global_vars, inventory_dir)
 
                 for group_name, group_keys in fragments.items()
             ))
@@ -753,13 +760,16 @@ class Deployment(object):
 
         yield ""
 
+    def generate_inventory_fragment(self, group, keys, env, inventory_dir):
+        group_vars_dir = os.path.join(inventory_dir, "group_vars")
+
+        try: os.mkdir(group_vars_dir)
+        except OSError: pass
+
         if group is not None:
-            yield "[{}:vars]".format(group)
+            vars_file = os.path.join(group_vars_dir, group)
+            json.dump(env, open(vars_file, "w"))
 
-            for key, value in env.items():
-                yield "{}={}".format(key, value)
-
-    def generate_inventory_fragment(self, group, keys, env):
         return "\n".join(
             self.generate_inventory_fragment_iterator(group, keys, env))
 
