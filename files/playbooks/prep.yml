@@ -75,30 +75,6 @@
         "npm": upgrade
         "grunt-cli": install
 
-    # - name:  nodesource | apt | key | fetch
-    #   apt_key:
-    #     url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
-    #     state: present
-
-    # - name: nodesource | apt | repository | add
-    #   apt_repository:
-    #     repo: "{{ item }} https://deb.nodesource.com/node_0.12 trusty main"
-    #     state: present
-    #   with_items:
-    #     - deb
-    #     - deb-src
-
-    # - name: nodejs | install
-    #   apt:
-    #     name: nodejs
-    #     update_cache: yes
-
-    # - name: npm packages | install
-    #   command: "npm {{ item.value }} -g {{ item.key }}"
-    #   with_dict:
-    #     "npm": upgrade
-    #     "grunt-cli": install
-
     - name: cran repository | key | fetch
       apt_key:
         keyserver: keyserver.ubuntu.com
