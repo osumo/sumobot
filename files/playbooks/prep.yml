@@ -61,16 +61,16 @@
         owner: root
         group: root
         state: directory
-        mode: "0770"
+        mode: "0775"
 
     - name: nvm | install
       shell: "wget -q -O - https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | NVM_DIR=/opt/nvm bash"
 
     - name: nodejs | v6 | install
-      shell: ". /opt/nvm/nvm.sh ; nvm install v6"
+      shell: "export NVM_DIR=/opt/nvm ; . $NVM_DIR/nvm.sh ; nvm install v6"
 
     - name: npm packages | install
-      shell: ". /opt/nvm/nvm.sh ; nvm use v6 ; npm {{ item.value }} -g {{ item.key }}"
+      shell: "export NVM_DIR=/opt/nvm ; . $NVM_DIR/nvm.sh ; nvm use v6 ; npm {{ item.value }} -g {{ item.key }}"
       with_dict:
         "npm": upgrade
         "grunt-cli": install
