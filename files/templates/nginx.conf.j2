@@ -3,6 +3,17 @@ server {
     listen [::]:80 default_server ipv6only=on;
 {% if deploy_mode == "staging" %}
     server_name testing.osumo.org;
+
+    return 307 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name localhost;
+
+    ssl_certificate /etc/nginx/ssl/www_osumo_org.pem;
+    ssl_certificate_key /etc/nginx/ssl/www_osumo_org.key;
+    add_header Strict-Transport-Security "max-age=15552000";
 {% else %}
     server_name osumo.org;
     return 307 https://$host$request_uri;
