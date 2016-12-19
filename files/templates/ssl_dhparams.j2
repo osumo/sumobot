@@ -1,1 +1,3 @@
+{% if deploy_mode != "staging" %}
 {{ ssl_dhparams }}
+{% endif %}
