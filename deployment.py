@@ -69,6 +69,7 @@ class Deployment(object):
 
         self.ssl_cert = get_from_parser(parser, "ssl_cert")
         self.ssl_chain = get_from_parser(parser, "ssl_chain")
+        self.ssl_dhparams = get_from_parser(parser, "ssl_dhparams")
         self.ssl_key = get_from_parser(parser, "ssl_key")
 
         self.s3_staging_bucket = (
@@ -595,6 +596,7 @@ class Deployment(object):
                     "aws_secret_access_key": self.aws_secret_access_key,
                     "ssl_cert": self.ssl_cert,
                     "ssl_chain": self.ssl_chain,
+                    "ssl_dhparams": self.ssl_dhparams,
                     "ssl_key": self.ssl_key,
                 }
             )
@@ -893,6 +895,7 @@ class Deployment(object):
                 "aws_secret_access_key": self.aws_secret_access_key,
                 "ssl_cert": self.ssl_cert,
                 "ssl_chain": self.ssl_chain,
+                "ssl_dhparams": self.ssl_dhparams,
                 "ssl_key": self.ssl_key,
             }
         )
@@ -944,6 +947,7 @@ class Deployment(object):
                 "aws_secret_access_key": self.aws_secret_access_key,
                 "ssl_cert": self.ssl_cert,
                 "ssl_chain": self.ssl_chain,
+                "ssl_dhparams": self.ssl_dhparams,
                 "ssl_key": self.ssl_key,
             }
         )
@@ -1012,6 +1016,7 @@ class Deployment(object):
                 "aws_secret_access_key": self.aws_secret_access_key,
                 "ssl_cert": self.ssl_cert,
                 "ssl_chain": self.ssl_chain,
+                "ssl_dhparams": self.ssl_dhparams,
                 "ssl_key": self.ssl_key,
             }
         )

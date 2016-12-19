@@ -139,10 +139,10 @@
         src: ../templates/ssl_cert.j2
         dest: /etc/nginx/ssl/www_osumo_org.pem
 
-    - name: nginx | ssl chain | create
+    - name: nginx | ssl dhparams | create
       template:
-        src: ../templates/ssl_chain.j2
-        dest: /etc/nginx/ssl/www_osumo_org.crt
+        src: ../templates/ssl_dhparams.j2
+        dest: /etc/nginx/ssl/dhparams.pem
 
     - name: nginx | configure
       template:

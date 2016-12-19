@@ -18,5 +18,6 @@ production_ip = secret://production-ip.asc
 staging_ip = secret://staging-ip.asc
 ssl_cert = secret://ssl_cert.asc
 ssl_chain = secret://ssl_chain.asc
+ssl_dhparams = secret://ssl_dhparams.asc
 ssl_key = secret://ssl_key.asc
 
