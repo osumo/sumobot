@@ -16,6 +16,29 @@
   user: ubuntu
   become: true
   tasks:
+    - name: nginx | ssl dir | create
+      file:
+        path: /etc/nginx/ssl
+        owner: root
+        group: root
+        state: directory
+        mode: "0770"
+
+    - name: nginx | ssl key | create
+      template:
+        src: ../templates/ssl_key.j2
+        dest: /etc/nginx/ssl/www_osumo_org.key
+
+    - name: nginx | ssl cert | create
+      template:
+        src: ../templates/ssl_cert.j2
+        dest: /etc/nginx/ssl/www_osumo_org.pem
+
+    - name: nginx | ssl dhparams | create
+      template:
+        src: ../templates/ssl_dhparams.j2
+        dest: /etc/nginx/ssl/dhparams.pem
+
     - name: nginx | configure
       template:
         src: ../templates/nginx.conf.j2

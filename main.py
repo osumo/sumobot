@@ -15,6 +15,8 @@ def deploy(args):
     with D.security():
         D.rolling_base()
         D.ensure_dynamic_instances(args.revision)
+
+    with D.security():
         D.rolling_deploy()
 
     D.send_bot("deploy complete")
@@ -29,6 +31,8 @@ def stage(args):
         with D.security():
             D.rolling_base()
             D.ensure_dynamic_instances(args.revision)
+
+        with D.security():
             D.rolling_stage(args.revision)
 
         D.send_bot("revision {} successfully staged".format(rev))

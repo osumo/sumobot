@@ -8,6 +8,9 @@ initialization_path="worker_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 cd "$( dirname "$0" )"
 
 source scripts/env
+export NVM_DIR=/opt/nvm
+source /opt/nvm/nvm.sh
+nvm use v6
 
 pushd girder_worker
 python -m girder_worker &

@@ -55,26 +55,27 @@
         - wget
         - zlib1g-dev
 
-    - name:  nodesource | apt | key | fetch
-      apt_key:
-        url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
-        state: present
+    - name: nvm | dir | create
+      file:
+        path: /opt/nvm
+        owner: root
+        group: root
+        state: directory
+        mode: "0775"
 
-    - name: nodesource | apt | repository | add
-      apt_repository:
-        repo: "{{ item }} https://deb.nodesource.com/node_0.12 trusty main"
-        state: present
-      with_items:
-        - deb
-        - deb-src
+    - name: nvm | install script | fetch
+      get_url:
+        url: "https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh"
+        dest: /tmp/nvm-install.sh
 
-    - name: nodejs | install
-      apt:
-        name: nodejs
-        update_cache: yes
+    - name: nvm | install
+      shell: "export NVM_DIR=/opt/nvm ; bash /tmp/nvm-install.sh"
+
+    - name: nodejs | v6 | install
+      shell: "export NVM_DIR=/opt/nvm ; . $NVM_DIR/nvm.sh ; nvm install v6"
 
     - name: npm packages | install
-      command: "npm {{ item.value }} -g {{ item.key }}"
+      shell: "export NVM_DIR=/opt/nvm ; . $NVM_DIR/nvm.sh ; nvm use v6 ; npm {{ item.value }} -g {{ item.key }}"
       with_dict:
         "npm": upgrade
         "grunt-cli": install
@@ -120,6 +121,29 @@
       system: true
 
   post_tasks:
+    - name: nginx | ssl dir | create
+      file:
+        path: /etc/nginx/ssl
+        owner: root
+        group: root
+        state: directory
+        mode: "0770"
+
+    - name: nginx | ssl key | create
+      template:
+        src: ../templates/ssl_key.j2
+        dest: /etc/nginx/ssl/www_osumo_org.key
+
+    - name: nginx | ssl cert | create
+      template:
+        src: ../templates/ssl_cert.j2
+        dest: /etc/nginx/ssl/www_osumo_org.pem
+
+    - name: nginx | ssl dhparams | create
+      template:
+        src: ../templates/ssl_dhparams.j2
+        dest: /etc/nginx/ssl/dhparams.pem
+
     - name: nginx | configure
       template:
         src: ../templates/nginx.conf.j2
