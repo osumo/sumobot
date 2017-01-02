@@ -16,6 +16,18 @@ def deploy(args):
         D.rolling_base()
         D.ensure_dynamic_instances(args.revision)
 
+    # The idea behind the D.security() context manager is to have an easy way to
+    # expose port 22 on AWS instances, run ansible playbooks on them, and then
+    # promptly close off port 22 access.
+    #
+    # However, D.security() will only consider instances that were around at the
+    # time the context was created.  So, if ensure_dynamic_instances ends up
+    # deciding that it needs to (re)create some instances, then the new instanes
+    # will not have their ports exposed.
+    #
+    # The straightforward solution, which is what is implemented here, is to
+    # just exit the security context and enter a new one, at which point we'd be
+    # sure to have all the ports we need exposed.
     with D.security():
         D.rolling_deploy()
 
@@ -32,6 +44,7 @@ def stage(args):
             D.rolling_base()
             D.ensure_dynamic_instances(args.revision)
 
+        # See above comment explaining why we use two separate block contexts
         with D.security():
             D.rolling_stage(args.revision)
 
