@@ -16,9 +16,10 @@ source /opt/nvm/nvm.sh
 nvm use v6
 
 pushd girder
-npm install
-python setup.py develop
-python -m girder &
+pip install -e '.[plugins]'
+girder-install plugin ../osumo
+girder-install web
+girder-server &
 popd
 
 if [ '!' -d "$initialization_path" ] ; then
@@ -37,6 +38,11 @@ if [ '!' -d "$initialization_path" ] ; then
         --aws-key-id "{{ aws_access_key_id }}"                                       \
         --aws-secret-key "{{ aws_secret_access_key }}"
 fi
+
+pushd girder
+girder-install web
+girder-install web --plugins osumo --plugin-prefix index
+popd
 
 wait
 
