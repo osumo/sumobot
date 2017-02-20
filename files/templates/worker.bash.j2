@@ -13,7 +13,8 @@ source /opt/nvm/nvm.sh
 nvm use v6
 
 pushd girder_worker
-python -m girder_worker &
+pip install -e '.'
+girder-worker &
 
 if [ '!' -d "$initialization_path" ] ; then
     rm -rf "worker_init"

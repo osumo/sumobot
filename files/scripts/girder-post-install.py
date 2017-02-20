@@ -95,6 +95,10 @@ args = parser.parse_args()
 client = GirderClient(host=args.host, port=args.port)
 
 user, password = args.admin.split(":", 1)
+
+if find_user('girder'):
+    client.authenticate('girder', 'girder')
+
 ensure_user(client,
             login=user,
             password=password,
@@ -126,7 +130,6 @@ client.put(
     'system/plugins',
     parameters=dict(plugins=json.dumps(['jobs', 'worker', 'osumo']))
 )
-
 client.put('system/restart')
 
 sleep(30)
@@ -134,7 +137,11 @@ sleep(30)
 client.put('system/setting',
            parameters=dict(list=json.dumps([
                dict(key='worker.broker', value=args.broker),
-               dict(key='worker.backend', value=args.broker)])))
+               dict(key='worker.backend', value=args.broker),
+               dict(key='core.route_table', value=dict(
+                                               core_girder="/girder",
+                                               core_static_root="/static",
+                                               osumo="/"))])))
 
 client.put('system/restart')
 

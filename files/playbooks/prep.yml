@@ -178,17 +178,6 @@
         repo: "git://github.com/osumo/osumo-project.git"
         version: "{{ revision }}"
 
-    - name: plugin | osumo | symlink
-      file:
-        src: /opt/osumo-project/osumo
-        dest: /opt/osumo-project/girder/plugins/osumo
-        state: link
-
-    - name: scripts | copy
-      copy:
-        src: ../scripts/girder-post-install.py
-        dest: /opt/osumo-project/girder-post-install.py
-
     - name: resonant | configure
       template:
         src: "../templates/{{ item.src }}.j2"
@@ -202,6 +191,11 @@
           dest: girder.bash
         - src: worker.bash
           dest: worker.bash
+
+    - name: scripts | copy
+      copy:
+        src: ../scripts/girder-post-install.py
+        dest: /opt/osumo-project/girder-post-install.py
 
 - hosts: worker
   user: ubuntu

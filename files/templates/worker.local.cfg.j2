@@ -1,4 +1,5 @@
 [celery]
+app_main=girder_worker
 broker=amqp://guest@{{ hostvars[groups["queue"][0]]["aws_private_ip"] }}/
 
 [girder_worker]
