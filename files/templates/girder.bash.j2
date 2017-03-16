@@ -17,7 +17,7 @@ nvm use v6
 
 pushd girder
 pip install -e '.[plugins]'
-girder-install plugin ../osumo
+girder-install plugin -f ../osumo
 girder-install web
 girder-server &
 popd
