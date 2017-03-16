@@ -17,6 +17,11 @@
 
 let child_process = require("child_process");
 
+const clearDevopsLock = (robot, res) => {
+  robot.brain.set("devopsInProgress", "none");
+  res.reply("devops lock cleared");
+};
+
 const checkDevOps = (robot, res, op) => {
   let devopsInProgress = robot.brain.get("devopsInProgress");
   let result = (devopsInProgress === "staging" ||
@@ -31,6 +36,10 @@ const checkDevOps = (robot, res, op) => {
 };
 
 module.exports = (robot) => {
+  robot.respond(/clear devops lock(.*)/i, (res) => {
+    clearDevopsLock(robot, res);
+  });
+
   robot.respond(/stage(.*)/i, (res) => {
     if(!checkDevOps(robot, res, "stage")) {
       robot.brain.set("devopsInProgress", "staging");
@@ -86,7 +95,7 @@ module.exports = (robot) => {
           console.log(msg);
           res.reply(msg);
         }
-        robot.brain.set("devopsInProgress", "none");
+        clearDevopsLock(robot, res);
       });
     }
   });
@@ -140,7 +149,7 @@ module.exports = (robot) => {
           console.log(msg);
           res.reply(msg);
         }
-        robot.brain.set("devopsInProgress", "none");
+        clearDevopsLock(robot, res);
       });
     }
   });
