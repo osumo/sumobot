@@ -77,7 +77,12 @@
     - name: npm packages | install
       shell: "export NVM_DIR=/opt/nvm ; . $NVM_DIR/nvm.sh ; nvm use v6 ; npm {{ item.value }} -g {{ item.key }}"
       with_dict:
-        "npm": upgrade
+        # NOTE(opadron): currently, there seems to be a bug with npm that causes
+        # it to trash itself when trying to upgrade itself, so for now, we leave
+        # it alone.
+        #
+        # "npm": upgrade
+
         "grunt-cli": install
 
     - name: cran repository | key | fetch
