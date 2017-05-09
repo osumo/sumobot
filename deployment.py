@@ -62,7 +62,6 @@ class Deployment(object):
         self.admin_pass = get_from_parser(parser, "admin_pass")
 
         self.public_name = get_from_parser(parser, "public_name")
-        self.public_pass = get_from_parser(parser, "public_pass")
 
         self.staging_ip    = get_from_parser(parser, "staging_ip")
         self.production_ip = get_from_parser(parser, "production_ip")
@@ -585,7 +584,6 @@ class Deployment(object):
                     "admin_name": self.admin_name,
                     "admin_pass": self.admin_pass,
                     "public_name": self.public_name,
-                    "public_pass": self.public_pass,
                     "deploy_mode": (
                         "production" if state == "live" else "staging"),
                     "s3_bucket": (
@@ -888,7 +886,6 @@ class Deployment(object):
                 "admin_name": self.admin_name,
                 "admin_pass": self.admin_pass,
                 "public_name": self.public_name,
-                "public_pass": self.public_pass,
                 "deploy_mode": "staging",
                 "s3_bucket": self.s3_staging_bucket,
                 "aws_access_key_id": self.aws_access_key_id,
@@ -940,7 +937,6 @@ class Deployment(object):
                 "admin_name": self.admin_name,
                 "admin_pass": self.admin_pass,
                 "public_name": self.public_name,
-                "public_pass": self.public_pass,
                 "deploy_mode": "production",
                 "s3_bucket": self.s3_production_bucket,
                 "aws_access_key_id": self.aws_access_key_id,
@@ -1009,7 +1005,6 @@ class Deployment(object):
                 "admin_name": self.admin_name,
                 "admin_pass": self.admin_pass,
                 "public_name": self.public_name,
-                "public_pass": self.public_pass,
                 "deploy_mode": "staging",
                 "s3_bucket": self.s3_staging_bucket,
                 "aws_access_key_id": self.aws_access_key_id,

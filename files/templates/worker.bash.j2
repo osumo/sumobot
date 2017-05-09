@@ -12,6 +12,7 @@ export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh
 nvm use v6
 
+rsync -avz ./sumo_io ./girder_worker/girder_worker/plugins
 pushd girder_worker
 pip install -e '.'
 girder-worker &

@@ -11,7 +11,6 @@ ssh_key_sub = secret://ssh-key.sub.asc
 admin_name = secret://admin_name.asc
 admin_pass = secret://admin_pass.asc
 public_name = secret://public_name.asc
-public_pass = secret://public_pass.asc
 s3_production_bucket = secret://s3_production_bucket.asc
 s3_staging_bucket = secret://s3_staging_bucket.asc
 production_ip = secret://production-ip.asc

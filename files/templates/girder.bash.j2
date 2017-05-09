@@ -28,11 +28,14 @@ if [ '!' -d "$initialization_path" ] ; then
     sleep 60
     export PYTHONPATH=/opt/osumo-project/girder
 
+    if [ '!' -f 'osumo_anonlogin.txt' ] ; then
+        echo "{{ public_name }}" > osumo_anonlogin.txt
+    fi
+
     python girder-post-install.py                                                    \
         --host localhost                                                             \
         --port 8080                                                                  \
         --admin "{{ admin_name }}:{{ admin_pass }}"                                  \
-        --sumo-user "{{ public_name }}:{{ public_pass }}"                            \
         --broker "amqp://guest@{{ hostvars[groups['queue'][0]]['aws_private_ip'] }}" \
         --s3 "{{ s3_bucket }}"                                                       \
         --aws-key-id "{{ aws_access_key_id }}"                                       \
