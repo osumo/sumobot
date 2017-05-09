@@ -7,6 +7,12 @@ initialization_path="girder_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 
 cd "$( dirname "$0" )"
 
+pushd osumo
+if [ '!' -f osumo_anonlogin.txt ] ; then
+    echo "{{ public_name }}" > osumo_anonlogin.txt
+fi
+popd
+
 export LD_RUN_PATH="/usr/lib32:$LD_RUN_PATH"
 export LD_LIBRARY_PATH="/usr/lib32:$LD_LIBRARY_PATH"
 
@@ -19,6 +25,7 @@ export NODE_ENV=production
 pushd girder
 pip install -e '.[plugins]'
 girder-install plugin -f ../osumo
+cp ../osumo/osumo_anonlogin.txt plugins/osumo
 girder-install web
 girder-server &
 popd
@@ -28,11 +35,6 @@ if [ '!' -d "$initialization_path" ] ; then
     mkdir -p "$initialization_path"
     sleep 60
     export PYTHONPATH=/opt/osumo-project/girder
-
-    anonloginfile='osumo/osumo_anonlogin.txt'
-    if [ '!' -f "$anonloginfile" ] ; then
-        echo "{{ public_name }}" > "$anonloginfile"
-    fi
 
     python girder-post-install.py                                                    \
         --host localhost                                                             \
