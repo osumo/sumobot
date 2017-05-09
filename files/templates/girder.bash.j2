@@ -15,6 +15,7 @@ export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh
 nvm use v6
 
+export NODE_ENV=production
 pushd girder
 pip install -e '.[plugins]'
 girder-install plugin -f ../osumo
