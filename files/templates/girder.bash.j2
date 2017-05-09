@@ -29,8 +29,9 @@ if [ '!' -d "$initialization_path" ] ; then
     sleep 60
     export PYTHONPATH=/opt/osumo-project/girder
 
-    if [ '!' -f 'osumo_anonlogin.txt' ] ; then
-        echo "{{ public_name }}" > osumo_anonlogin.txt
+    anonloginfile='osumo/osumo_anonlogin.txt'
+    if [ '!' -f "$anonloginfile" ] ; then
+        echo "{{ public_name }}" > "$anonloginfile"
     fi
 
     python girder-post-install.py                                                    \
