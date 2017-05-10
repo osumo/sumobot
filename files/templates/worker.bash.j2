@@ -12,9 +12,9 @@ export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh
 nvm use v6
 
-rsync -avz ./sumo_io ./girder_worker/girder_worker/plugins
 pushd girder_worker
 pip install -e '.'
+rsync -avz --exclude .git ../sumo_io ./girder_worker/plugins
 girder-worker &
 
 if [ '!' -d "$initialization_path" ] ; then
