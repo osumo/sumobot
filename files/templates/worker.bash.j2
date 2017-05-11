@@ -16,12 +16,11 @@ cd "$( dirname "$0" )"
         done
     }
 
-    set +e
-    pid="$( cat ./girder_worker.pid2 )"
-    pids="$( pid_walk "$pid" )"
-    kill $pid
-    sleep 5
-    kill -9 $pids
+    pid="$( cat ./girder_worker.pid2 || true )"
+    pids="$( pid_walk "$pid" || true )"
+    kill $pid || true
+    sleep 5 || true
+    kill -9 $pids || true
 ) &> /dev/null
 
 echo $$ > ./girder_worker.pid2
