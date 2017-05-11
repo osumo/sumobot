@@ -930,7 +930,7 @@ class Deployment(object):
                 "web": (("web", "staged"),),
                 "worker": (("worker", "staged"),),
                 "db": ("p/db",),
-                "queue": ("p/queue",),
+                "queue": ("p/queue", "s/db+mq"),
                 "dynamic": (("web", "staged"), ("worker", "staged"))
             },
             {
@@ -998,7 +998,7 @@ class Deployment(object):
                 "web": (("web", "staged"),),
                 "worker": (("worker", "staged"),),
                 "db": ("s/db+mq",),
-                "queue": ("s/db+mq",),
+                "queue": ("p/queue", "s/db+mq"),
                 "dynamic": (("web", "staged"), ("worker", "staged"))
             },
             {
