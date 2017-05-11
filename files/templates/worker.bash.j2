@@ -7,6 +7,10 @@ initialization_path="worker_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 
 cd "$( dirname "$0" )"
 
+# needed to make sure girder-worker cleans up after restarting
+kill $( cat ./girder_worker.pid2 ) &> /dev/null || true
+echo $$ > ./girder_worker.pid2
+
 source scripts/env
 export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh
@@ -15,16 +19,4 @@ nvm use v6
 pushd girder_worker
 pip install -e '.'
 rsync -avz --exclude .git ../sumo_io ./girder_worker/plugins
-girder-worker &
-
-if [ '!' -d "$initialization_path" ] ; then
-    rm -rf "worker_init"
-    mkdir -p "$initialization_path"
-    sleep 60
-    export PYTHONPATH=/opt/osumo-project/girder
-fi
-
-popd
-
-wait
-
+exec girder-worker
