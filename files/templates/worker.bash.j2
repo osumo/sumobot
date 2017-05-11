@@ -7,8 +7,23 @@ initialization_path="worker_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 
 cd "$( dirname "$0" )"
 
-# needed to make sure girder-worker cleans up after restarting
-kill $( cat ./girder_worker.pid2 ) &> /dev/null || true
+# needed to make sure girder-worker stops, actually REALLY **STOPS**!
+(
+    function pid_walk () {
+        echo "$1"
+        for pid in $(ps -o pid= --ppid "$1") ; do
+            pid_walk "$pid"
+        done
+    }
+
+    set +e
+    pid="$( cat ./girder_worker.pid2 )"
+    pids="$( pid_walk "$pid" )"
+    kill $pid
+    sleep 5
+    kill -9 $pids
+) &> /dev/null
+
 echo $$ > ./girder_worker.pid2
 
 source scripts/env
