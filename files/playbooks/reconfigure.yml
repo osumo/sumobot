@@ -78,10 +78,18 @@
   user: ubuntu
   become: true
   tasks:
+    - name: girder worker | service | stop
+      service:
+        name: girder_worker
+        state: stopped
+
+    - name: wait for 10 seconds
+      localaction: wait_for timeout=10
+
     - name: girder worker | service | start
       service:
         name: girder_worker
-        state: restarted
+        state: started
 
 - hosts: queue
   user: ubuntu
