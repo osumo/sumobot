@@ -88,6 +88,7 @@
 
     - name: forcefully remove stale girder-workers
       command: pkill -9 girder-worker
+      failed_when: false
 
     - name: girder worker | service | start
       service:
