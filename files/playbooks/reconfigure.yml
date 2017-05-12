@@ -86,6 +86,9 @@
     - name: wait for 10 seconds
       local_action: wait_for timeout=10
 
+    - name: forcefully remove stale girder-workers
+      command: pkill -9 girder-worker
+
     - name: girder worker | service | start
       service:
         name: girder_worker
