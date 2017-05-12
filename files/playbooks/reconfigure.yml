@@ -84,7 +84,7 @@
         state: stopped
 
     - name: wait for 10 seconds
-      localaction: wait_for timeout=10
+      local_action: wait_for timeout=10
 
     - name: girder worker | service | start
       service:
