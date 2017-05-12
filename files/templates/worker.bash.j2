@@ -7,24 +7,6 @@ initialization_path="worker_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 
 cd "$( dirname "$0" )"
 
-# needed to make sure girder-worker stops, actually REALLY **STOPS**!
-(
-    function pid_walk () {
-        echo "$1"
-        for pid in $(ps -o pid= --ppid "$1") ; do
-            pid_walk "$pid"
-        done
-    }
-
-    pid="$( cat ./girder_worker.pid2 || true )"
-    pids="$( pid_walk "$pid" || true )"
-    kill $pid || true
-    sleep 5 || true
-    kill -9 $pids || true
-) &> /dev/null
-
-echo $$ > ./girder_worker.pid2
-
 source scripts/env
 export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh

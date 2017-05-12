@@ -201,7 +201,7 @@ class Deployment(object):
             },
 
             "worker": {
-                "type": "t2.medium",
+                "type": "t2.large",
                 "volumes": [20],
                 "groups": ["internal"],
             },
