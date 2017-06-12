@@ -181,7 +181,7 @@ class Deployment(object):
             },
 
             "p/queue": {
-                "type": "t2.medium",
+                "type": "t2.small",
                 "volumes": [20],
                 "groups": ["internal"],
             },
