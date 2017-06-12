@@ -7,6 +7,12 @@ initialization_path="girder_init/$( cat "$0" | shasum | cut -d\  -f 1 )"
 
 cd "$( dirname "$0" )"
 
+pushd osumo
+if [ '!' -f osumo_anonlogin.txt ] ; then
+    echo "{{ public_name }}" > osumo_anonlogin.txt
+fi
+popd
+
 export LD_RUN_PATH="/usr/lib32:$LD_RUN_PATH"
 export LD_LIBRARY_PATH="/usr/lib32:$LD_LIBRARY_PATH"
 
@@ -15,9 +21,11 @@ export NVM_DIR=/opt/nvm
 source /opt/nvm/nvm.sh
 nvm use v6
 
+export NODE_ENV=production
 pushd girder
 pip install -e '.[plugins]'
 girder-install plugin -f ../osumo
+cp ../osumo/osumo_anonlogin.txt plugins/osumo
 girder-install web
 girder-server &
 popd
@@ -32,7 +40,6 @@ if [ '!' -d "$initialization_path" ] ; then
         --host localhost                                                             \
         --port 8080                                                                  \
         --admin "{{ admin_name }}:{{ admin_pass }}"                                  \
-        --sumo-user "{{ public_name }}:{{ public_pass }}"                            \
         --broker "amqp://guest@{{ hostvars[groups['queue'][0]]['aws_private_ip'] }}" \
         --s3 "{{ s3_bucket }}"                                                       \
         --aws-key-id "{{ aws_access_key_id }}"                                       \

@@ -14,16 +14,5 @@ nvm use v6
 
 pushd girder_worker
 pip install -e '.'
-girder-worker &
-
-if [ '!' -d "$initialization_path" ] ; then
-    rm -rf "worker_init"
-    mkdir -p "$initialization_path"
-    sleep 60
-    export PYTHONPATH=/opt/osumo-project/girder
-fi
-
-popd
-
-wait
-
+rsync -avz --exclude .git ../sumo_io ./girder_worker/plugins
+exec girder-worker

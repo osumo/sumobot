@@ -6,7 +6,7 @@
 #                      web worker db queue dynamic
 #         WEB          X                   X
 # [host]  WORK             X               X
-#         DB+Q                    X
+#         DB+Q                    X  X
 #         QUEUE                      X
 
 - include: wait_for_ssh.yml
@@ -78,9 +78,30 @@
   user: ubuntu
   become: true
   tasks:
+    - name: girder worker | service | stop
+      service:
+        name: girder_worker
+        state: stopped
+
+    - name: wait for 10 seconds
+      local_action: wait_for timeout=10
+
+    - name: forcefully remove stale girder-workers
+      command: pkill -9 girder-worker
+      failed_when: false
+
     - name: girder worker | service | start
       service:
         name: girder_worker
+        state: started
+
+- hosts: queue
+  user: ubuntu
+  become: true
+  tasks:
+    - name: restart rabbitmq
+      service:
+        name: rabbitmq-server
         state: restarted
 
 - hosts: web

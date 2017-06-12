@@ -85,7 +85,6 @@ parser.add_argument('--admin', help='name:pass for the admin user')
 parser.add_argument('--host', help='host to connect to')
 parser.add_argument('--port', type=int, help='port to connect to')
 parser.add_argument('--broker', help='girder worker broker URI')
-parser.add_argument('--sumo-user', help='name:pass for sumo public user')
 parser.add_argument('--s3', help='name of S3 bucket')
 parser.add_argument('--aws-key-id', help='aws key id')
 parser.add_argument('--aws-secret-key', help='aws secret key')
@@ -107,14 +106,6 @@ ensure_user(client,
             lastName='Admin')
 
 client.authenticate(user, password)
-
-user, password = args.sumo_user.split(":", 1)
-ensure_user(client,
-            login=user,
-            password=password,
-            email='public@osumo.org',
-            firstName='Osumo',
-            lastName='Public')
 
 s3_assetstore_name = 's3'
 

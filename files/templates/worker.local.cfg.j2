@@ -3,4 +3,4 @@ app_main=girder_worker
 broker=amqp://guest@{{ hostvars[groups["queue"][0]]["aws_private_ip"] }}/
 
 [girder_worker]
-plugins_enabled=r,girder_io
+plugins_enabled=r,girder_io,sumo_io
