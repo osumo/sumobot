@@ -195,13 +195,13 @@ class Deployment(object):
 
         self.dynamic_instance_conf = {
             "web": {
-                "type": "t2.medium",
+                "type": "t2.small",
                 "volumes": [20],
                 "groups": ["web"],
             },
 
             "worker": {
-                "type": "t2.large",
+                "type": "t2.small",
                 "volumes": [20],
                 "groups": ["internal"],
             },
